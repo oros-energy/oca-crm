@@ -1,0 +1,2 @@
+# crm_industry needs partner_industry_secondary 20.0, which is not released on OCA/partner-contact yet
+odoo-addon-partner_industry_secondary @ git+https://github.com/oros-energy/oca-partner-contact.git@20.0#subdirectory=partner_industry_secondary
