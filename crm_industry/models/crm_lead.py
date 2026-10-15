@@ -35,19 +35,25 @@ class CrmLead(models.Model):
                     )
                 )
 
-    def _prepare_customer_values(self, partner_name, is_company=False, parent_id=False):
+    def _prepare_industry_values(self):
+        return {
+            "industry_id": self.industry_id.id,
+            "secondary_industry_ids": [(6, 0, self.secondary_industry_ids.ids)],
+        }
+
+    def _prepare_customer_values(self, partner_name, parent_id=False):
         """Propagate industries in the creation of partner."""
-        values = super()._prepare_customer_values(
-            partner_name, is_company=is_company, parent_id=parent_id
-        )
-        main, secondary = self.industry_id, self.secondary_industry_ids
-        values.update(
-            {
-                "industry_id": main.id,
-                "secondary_industry_ids": [(6, 0, secondary.ids)],
-            }
-        )
+        values = super()._prepare_customer_values(partner_name, parent_id=parent_id)
+        values.update(self._prepare_industry_values())
         return values
+
+    def _create_customer(self):
+        """Propagate industries to the company created from the lead."""
+        new_company = not self.partner_id and self.partner_name
+        partner = super()._create_customer()
+        if new_company and partner.parent_id:
+            partner.parent_id.write(self._prepare_industry_values())
+        return partner
 
     @api.depends("partner_id")
     def _compute_industry_id(self):

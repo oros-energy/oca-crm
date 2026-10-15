@@ -36,10 +36,33 @@ class TestCrmLead(TransactionCase):
         }
         lead = self.env["crm.lead"].create(lead_vals)
         partner = self.env["res.partner"].create(
-            lead._prepare_customer_values(lead.partner_name, is_company=True)
+            lead._prepare_customer_values(lead.partner_name)
         )
         self.assertEqual(partner.industry_id, lead.industry_id)
         self.assertEqual(partner.secondary_industry_ids, lead.secondary_industry_ids)
+
+    def test_lead_create_company(self):
+        industry_pool = self.env["res.partner.industry"]
+        industry_1 = industry_pool.create({"name": "Test 01"})
+        industry_2 = industry_pool.create(
+            {"name": "Test 02", "parent_id": industry_1.id}
+        )
+        lead = self.env["crm.lead"].create(
+            {
+                "name": "test",
+                "partner_name": "Test Company",
+                "contact_name": "Test Contact",
+                "industry_id": industry_1.id,
+                "secondary_industry_ids": [(4, industry_2.id)],
+            }
+        )
+        lead._handle_partner_assignment()
+        company = lead.partner_id.parent_id
+        self.assertEqual(company.name, "Test Company")
+        self.assertEqual(company.industry_id, industry_1)
+        self.assertEqual(company.secondary_industry_ids, industry_2)
+        self.assertEqual(lead.industry_id, industry_1)
+        self.assertEqual(lead.secondary_industry_ids, industry_2)
 
     def test_propagate_industries_from_contact(self):
         res_partner_industry = self.env["res.partner.industry"]
